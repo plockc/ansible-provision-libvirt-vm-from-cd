@@ -1,0 +1,11 @@
+---
+uuid: "{{ vm_name | to_uuid }}"
+provisioned_hostname: archiso.local
+vm_disk_size: 25
+vm_memory: 4
+
+install_cd: /var/lib/libvirt/images/arch-plockc.iso
+
+mount_dirs:
+  - src: /var/cache/pacman/pkg
+    name: pacman_cache

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain xmlns:qemu="http://libvirt.org/schemas/domain/qemu/1.0" type="kvm">
+    <name>{{ vm_name}}</name>
+  <uuid>{{ uuid }}</uuid>
+  <memory unit="GB">{{ vm_memory }}</memory>
+  <currentMemory unit="GB">{{ vm_memory }}</currentMemory>
+  <os>
+	  <type arch="x86_64" machine="q35">hvm</type>
+	  <loader>/usr/share/qemu/bios.bin</loader>
+	  <bootmenu enable="yes" />
+      <boot dev="cdrom" />
+      <boot dev="hd" />
+  </os>
+  <features>
+    <hyperv>
+	    <relaxed state="on" />
+	    <vapic state="on" />
+	    <spinlocks state="on" retries="8191" />
+    </hyperv>
+    <acpi />
+    <pae/>
+    <apic/>
+  </features>
+  <cpu mode="host-passthrough"> 
+	  <vcpu placement="static">1</vcpu>
+	  <topology sockets="1" cores="1" threads="1" />
+  </cpu>
+  <clock offset="localtime">
+	  <timer name="hypervclock" present="yes" />
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+	  <emulator>/usr/bin/qemu-system-x86_64</emulator>
+	  <interface type='bridge'>
+            <mac address='{{ mac }}'/>
+            <source bridge='br0'/>
+            <model type='virtio'/>
+            <rom bar='off'/>
+	  </interface>
+	  <controller type="usb" index="0" />
+	  <controller type="usb" index="1" />
+	  <controller type="usb" index="2" />
+	  <controller type="usb" index="3" />
+	  <controller type="sata" index="0" />
+	  <controller type="pci" index="0" model="pcie-root" />
+	  <controller type="pci" index="1" model="dmi-to-pci-bridge" />
+	  <controller type="pci" index="2" model="pci-bridge" />
+	  <memballoon model="none" />
+      <graphics type="spice" port="{{ spice_port }}"/>
+	  <video><model type="qxl"/></video>
+
+      {%- set drive_letters = "abcdefghij"|list -%}
+      {%- set next_drive_letter_index = 0 %}
+
+      {% if block_devices|default(False) %}
+      {% for block_dev in block_devices %}
+      <disk type="block" device="disk">
+          <driver name="qemu" type="raw" />
+          <source dev="{{ block_dev['device'] }}"/>
+          <target dev="hda" bus="virtio"/>
+          {% set next_drive_letter_index = loop.index -%}
+      </disk>
+      {% endfor %}
+      {% endif -%}
+
+      {% if qcows|default(False) %}
+      {% for q in qcows %}
+      <disk type='file' device='disk'>
+          <driver name='qemu' type='qcow2' cache='none'/>
+          <source file='{{ q['path'] }}'/>
+          <target dev="hd{{ drive_letters[next_drive_letter_index + loop.index0] }}" bus='virtio'/>
+      </disk>
+      {% endfor %}
+      {% endif -%}
+
+      {% if mount_dirs|default(False) %}
+   	  <filesystem accessmode="passthrough">
+          <driver type="path"/>
+          <source dir="{{ mount_dirs[0].src }}"/>
+          <target dir="{{ mount_dirs[0].name }}"/>
+      </filesystem>
+      {% endif %}
+  </devices>
+</domain>

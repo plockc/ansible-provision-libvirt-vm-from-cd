@@ -1,0 +1,15 @@
+---
+- name: Create Missing Disk Images
+  command: "qemu-img create -f qcow2 -o preallocation=metadata
+            {{ item['path'] }} {{ vm_disk_size|int }}G"
+  args:
+      creates: "{{ item.path }}"
+  with_items: "{{ qcows|default([]) }}"
+  notify: Boot with CDROM
+
+- name: Define VM
+  virt:
+    command: define
+    name: "{{ vm_name }}"
+    xml: "{{ lookup('template', 'templates/libvirt-vm-definition.xml.j2') }}"
+  notify: Boot with CDROM
