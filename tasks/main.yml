@@ -11,5 +11,6 @@
   virt:
     command: define
     name: "{{ vm_name }}"
-    xml: "{{ lookup('template', 'templates/libvirt-vm-definition.xml.j2') }}"
+    xml: "{{ lookup('template', 'libvirt-vm-definition.xml.j2') }}"
   notify: Boot with CDROM
+
