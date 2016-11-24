@@ -1,16 +1,39 @@
 ---
 - name: Create Missing Disk Images
   command: "qemu-img create -f qcow2 -o preallocation=metadata
-            {{ item['path'] }} {{ vm_disk_size|int }}G"
+            {{ item['path'] }} {{ item.size|default(vm_disk_size)|int }}G"
   args:
       creates: "{{ item.path }}"
   with_items: "{{ qcows|default([]) }}"
-  notify: Boot with CDROM
+  notify: Restart VM
 
 - name: Define VM
   virt:
     command: define
     name: "{{ vm_name }}"
     xml: "{{ lookup('template', 'libvirt-vm-definition.xml.j2') }}"
-  notify: Boot with CDROM
+  notify: Restart VM
 
+- name: Check is re-install requested
+  debug: msg="Installing OS with CDROM }}"
+  notify:
+    - Restart VM
+  changed_when: cdrom_install|bool
+  when: cdrom_install|bool
+
+- name: Check if needing Windows Drivers during install
+  debug: msg="Result is {{ vm_linux|bool }}"
+  changed_when: not vm_linux|bool
+  notify:
+    - Remove Windows Drivers CDROM before boot
+    - Add Windows Drivers CDROM
+    - Start VM
+    - Remove Windows Drivers CDROM
+  when: qemu_windows_drivers|bool or (cdrom_install|bool and not vm_linux|bool)
+
+- meta: flush_handlers
+
+- name: Start Domain if it is not running
+  virt:
+    name: "{{ vm_name }}"
+    state: running

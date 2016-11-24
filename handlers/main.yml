@@ -1,8 +1,59 @@
 ---
-- name: Boot with CDROM
+- name: Restart VM
+  debug: msg="Restarting {{ vm_name }}"
+  changed_when: true
+  notify:
+    - Stop VM
+    - Remove CDROM before adding
+    - Remove Windows Drivers CDROM before boot
+    - Add CDROM
+    - Start VM
+    - Remove CDROM
+    - Wait for VM boot 
+
+- name: Check VM defined
+  virt: command=get_vm name={{ vm_name }}
+  register: vm_defined
+  failed_when: false
+
+- name: Check VM running
+  virt: command=get_vm name={{ vm_name }}
+  failed_when: false
+  when: vm_defined.failed
+
+- name: Stop VM
+  virt: name={{ vm_name }} state=shutdown force=true
+
+# removes from definition, but --config doesn't affect runtime
+- name: Remove CDROM before adding
+  command: virsh detach-disk --domain {{ vm_name }} --target vdd --config
+  failed_when: false
+  when: cdrom_install|bool
+
+# removes from definition, but --config doesn't affect runtime
+- name: Remove Windows Drivers CDROM before boot
+  command: virsh detach-disk --domain {{ vm_name }} --target vde --config
+  failed_when: false
+  when: cdrom_install|bool or qemu_windows_drivers|bool
+
+- name: Add Windows Drivers CDROM
   command: virsh attach-disk 
     --domain {{ vm_name }}
-    --source {{ install_cd }}
+    --source {{ windows_drivers_cd_path }}
+    --target vde 
+    --targetbus sata 
+    --driver qemu 
+    --type cdrom 
+    --config 
+    --sourcetype file  
+    --subdriver raw 
+    --mode readonly
+  when: cdrom_install|bool or qemu_windows_drivers|bool
+
+- name: Add CDROM
+  command: virsh attach-disk 
+    --domain {{ vm_name }}
+    --source {{ install_cd_path }}
     --target vdd 
     --targetbus sata 
     --driver qemu 
@@ -11,15 +62,24 @@
     --sourcetype file  
     --subdriver raw 
     --mode readonly
-  changed_when: True
-  notify: Start VM with CDROM
-- name: Start VM with CDROM
+  when: cdrom_install|bool
+
+- name: Start VM
   virt:
     name: "{{ vm_name }}"
     state: running
-  changed_when: True
-  notify: Wait for VM boot with CDROM
-- name: Wait for VM boot with CDROM
+
+# removes from definition, but --config doesn't affect runtime
+- name: Remove CDROM
+  command: virsh detach-disk --domain {{ vm_name }} --target vdd --config
+  when: cdrom_install|bool
+
+# removes from definition, but --config doesn't affect runtime
+- name: Remove Windows Drivers CDROM
+  command: virsh detach-disk --domain {{ vm_name }} --target vde --config
+  when: cdrom_install|bool or qemu_windows_drivers|bool
+
+- name: Wait for VM boot
   local_action:
     module: wait_for
     port: 22
@@ -28,7 +88,5 @@
     delay: 3
     timeout: 60
     connect_timeout: 3 
-  changed_when: True
-  notify: Detach CDROM from booted VM
-- name: Detach CDROM from booted VM
-  command: virsh detach-disk --domain {{ vm_name }} --target vdd --config
+  when: vm_linux|bool
+

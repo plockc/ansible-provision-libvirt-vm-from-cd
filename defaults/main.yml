@@ -3,8 +3,11 @@ uuid: "{{ vm_name | to_uuid }}"
 provisioned_hostname: archiso.local
 vm_disk_size: 25
 vm_memory: 4
+vm_cores: 1
+vm_linux: true
 
-install_cd: /var/lib/libvirt/images/arch-plockc.iso
+windows_drivers_cd_path: /var/lib/libvirt/images/virtio-win-0.1.126.iso
+install_cd_path: /var/lib/libvirt/images/arch-plockc.iso
 
 mount_dirs:
   - src: /var/cache/pacman/pkg
