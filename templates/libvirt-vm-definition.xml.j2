@@ -48,7 +48,7 @@
 	  <controller type="pci" index="1" model="dmi-to-pci-bridge" />
 	  <controller type="pci" index="2" model="pci-bridge" />
 	  <memballoon model="none" />
-      <graphics type="spice" port="{{ spice_port }}"/>
+      <graphics type="spice" port="{{ spice_port }}" listen="0.0.0.0"/>
 	  <video><model type="qxl"/></video>
 
       {%- set drive_letters = "abcdefghij"|list -%}
