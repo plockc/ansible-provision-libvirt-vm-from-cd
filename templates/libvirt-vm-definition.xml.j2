@@ -21,9 +21,13 @@
     <pae/>
     <apic/>
   </features>
+  <pm>
+      <suspend-to-disk enabled="no"/>
+      <suspend-to-memory enabled="no"/>
+  </pm>
+  <vcpu placement="static">2</vcpu>
   <cpu mode="host-passthrough"> 
-	  <vcpu placement="static">1</vcpu>
-	  <topology sockets="1" cores="1" threads="1" />
+	  <topology sockets="1" cores="2" threads="1" />
   </cpu>
   <clock offset="localtime">
 	  <timer name="hypervclock" present="yes" />
@@ -48,8 +52,10 @@
 	  <controller type="pci" index="1" model="dmi-to-pci-bridge" />
 	  <controller type="pci" index="2" model="pci-bridge" />
 	  <memballoon model="none" />
+{% if not vm_pci_passthrough_vga_address|default(False) %}
       <graphics type="spice" port="{{ spice_port }}" listen="0.0.0.0"/>
-	  <video><model type="qxl"/></video>
+      <video><model type="qxl"/></video>
+{% endif %}
 
       {%- set drive_letters = "abcdefghij"|list -%}
       {%- set next_drive_letter_index = 0 %}
@@ -59,7 +65,7 @@
       <disk type="block" device="disk">
           <driver name="qemu" type="raw" />
           <source dev="{{ block_dev['device'] }}"/>
-          <target dev="hda" bus="virtio"/>
+          <target dev="vda" bus="virtio"/>
           {% set next_drive_letter_index = loop.index -%}
       </disk>
       {% endfor %}
@@ -70,7 +76,7 @@
       <disk type='file' device='disk'>
           <driver name='qemu' type='qcow2' cache='none'/>
           <source file='{{ q['path'] }}'/>
-          <target dev="hd{{ drive_letters[next_drive_letter_index + loop.index0] }}" bus='virtio'/>
+          <target dev="vd{{ drive_letters[next_drive_letter_index + loop.index0] }}" bus='virtio'/>
       </disk>
       {% endfor %}
       {% endif -%}
@@ -82,5 +88,27 @@
           <target dir="{{ mount_dirs[0].name }}"/>
       </filesystem>
       {% endif %}
+
+      {% for usb in vm_usb_passthrough_devices %}
+      <hostdev mode="subsystem" type="usb">
+          <source>
+              <vendor id="{{usb.vendor}}"/>
+              <product id="{{ usb.product }}"/>
+          </source>
+      </hostdev>
+      {% endfor %}
+      
   </devices>
+  <qemu:commandline>
+      <qemu:arg value="-device ioh3420,bus=pcie.0,addr=1c.0,multifunction=on,port=1,chassis=1,id=root.1" />
+{% if vm_pci_passthrough_vga_address|default(False) %}
+      <qemu:arg value="-device" />
+      <qemu:arg value="vfio-pci,host={{ vm_pci_passthrough_vga_address }},multifunction=on,x-vga=on" />
+{% endif %}
+{% for address in vm_pci_passthrough_device_addresses %}
+      <qemu:arg value="-device" />
+      <qemu:arg value="vfio-pci,host={{ address }}" />
+{% endfor %}
+      <qemu:env name='QEMU_AUDIO_DRV' value='alsa'/>
+  </qemu:commandline>
 </domain>

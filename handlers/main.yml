@@ -68,6 +68,7 @@
   virt:
     name: "{{ vm_name }}"
     state: running
+  when: vm_start|bool
 
 # removes from definition, but --config doesn't affect runtime
 - name: Remove CDROM

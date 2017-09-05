@@ -5,7 +5,14 @@ vm_disk_size: 25
 vm_memory: 4
 vm_cores: 1
 vm_linux: true
-
+vm_start: yes
+vm_usb_passthrough_devices: []
+vm_pci_passthrough_device_addresses: []
+# use ac97 for windows7 and download driver
+# http://www.realtek.com.tw/downloads/downloadsCheck.aspx?Langid=1&PNid=14&PFid=23&Level=4&Conn=3&DownTypeID=3&GetDown=false
+# ich6 is Intel HDA card (more modern windows, etc.)
+# set windows sound card properties to 48kHz instead of 44.1
+vm_sound_card: ich6
 windows_drivers_cd_path: /var/lib/libvirt/images/virtio-win-0.1.126.iso
 install_cd_path: /var/lib/libvirt/images/arch-plockc.iso
 

@@ -22,14 +22,14 @@
   when: cdrom_install|bool
 
 - name: Check if needing Windows Drivers during install
-  debug: msg="Result is {{ vm_linux|bool }}"
+  debug: msg="Result is {{ qemu_windows_drivers|bool or cdrom_install|bool }}"
   changed_when: not vm_linux|bool
   notify:
     - Remove Windows Drivers CDROM before boot
     - Add Windows Drivers CDROM
     - Start VM
     - Remove Windows Drivers CDROM
-  when: qemu_windows_drivers|bool or (cdrom_install|bool and not vm_linux|bool)
+  when: qemu_windows_drivers|bool or cdrom_install|bool
 
 - meta: flush_handlers
 
@@ -37,3 +37,4 @@
   virt:
     name: "{{ vm_name }}"
     state: running
+  when: vm_start|bool
